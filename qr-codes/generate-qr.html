@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Code Generator — Campus Navigation</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px 16px 60px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #f4f4f5;
+      color: #0a0a0a;
+      line-height: 1.5;
+    }
+
+    .wrap { max-width: 1100px; margin: 0 auto; }
+
+    h1 { margin: 0 0 6px; font-size: 1.5rem; }
+
+    .subtitle { margin: 0 0 24px; color: #525252; font-size: 0.95rem; }
+
+    /* ---- Control panel ---- */
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #e5e5e5;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+      margin-bottom: 24px;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #525252;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid #d4d4d4;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: white;
+      color: #0a0a0a;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #0a0a0a;
+      box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.08);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 640px) {
+      .row { grid-template-columns: 1fr; }
+    }
+
+    .btn {
+      padding: 12px 22px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.08s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary { background: #0a0a0a; color: white; }
+    .btn-primary:hover { background: #262626; }
+
+    .btn-secondary {
+      background: white;
+      color: #0a0a0a;
+      border: 1px solid #d4d4d4;
+    }
+    .btn-secondary:hover { background: #f4f4f5; }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .hint { font-size: 0.82rem; color: #525252; margin-top: 6px; }
+
+    .hint code {
+      background: #f4f4f5;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      background: #f4f4f5;
+      color: #0a0a0a;
+      border: 1px solid #e5e5e5;
+    }
+
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
+    /* ---- QR sheet (3 columns) ---- */
+    .sheet {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e5e5e5;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    }
+
+    .qr-card {
+      border: 1px dashed #d4d4d4;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      background: white;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .qr-card img {
+      width: 100%;
+      max-width: 180px;
+      height: auto;
+      display: block;
+      margin: 0 auto 8px;
+    }
+
+    .qr-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin: 0 0 2px;
+      line-height: 1.25;
+    }
+
+    .qr-id {
+      font-size: 0.72rem;
+      color: #525252;
+      font-family: monospace;
+      margin: 0 0 4px;
+      word-break: break-all;
+    }
+
+    .qr-url {
+      font-size: 0.68rem;
+      color: #a3a3a3;
+      margin: 0;
+      word-break: break-all;
+      line-height: 1.3;
+    }
+
+    .qr-college {
+      font-size: 0.65rem;
+      color: #a3a3a3;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 6px;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 40px 20px;
+      color: #a3a3a3;
+      font-size: 0.95rem;
+    }
+
+    /* ---- Print rules ---- */
+    @media print {
+      @page { size: A4 portrait; margin: 12mm; }
+
+      body { background: white; padding: 0; }
+      .wrap { max-width: 100%; }
+
+      .panel, h1, .subtitle { display: none !important; }
+
+      .sheet {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        gap: 10mm;
+      }
+
+      .qr-card { border: 1px dashed #a3a3a3; padding: 6mm; }
+
+      .qr-url { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="wrap">
+
+    <h1>Campus Navigation — QR Code Generator</h1>
+    <p class="subtitle">Generate a printable A4 sheet of QR codes, one per campus location.</p>
+
+    <!-- ---- Control panel ---- -->
+    <section class="panel">
+
+      <div class="field">
+        <label for="base-url">Deployed Base URL</label>
+        <input type="text" id="base-url" placeholder="https://yourname.github.io/Campus-Navigation" />
+        <p class="hint">
+          <strong>For your deployed site, use:</strong><br>
+          <code>https://mahadevaprasad-m.github.io/Campus-Navigation</code>
+        </p>
+        <p class="hint">For local testing: <code>http://localhost:8080</code></p>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="qr-size">QR Size (pixels)</label>
+          <input type="number" id="qr-size" value="300" min="150" max="800" />
+        </div>
+        <div class="field">
+          <label for="qr-service">QR Generation Service</label>
+          <select id="qr-service">
+            <option value="qrserver">api.qrserver.com</option>
+            <option value="quickchart">quickchart.io</option>
+            <option value="google">chart.googleapis.com (legacy)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-primary"   id="generate-btn">Generate QR Codes</button>
+        <button type="button" class="btn btn-secondary" id="print-btn">Print / Save as PDF</button>
+        <button type="button" class="btn btn-secondary" id="download-btn">Download All PNGs</button>
+      </div>
+
+      <div class="status" id="status" hidden></div>
+    </section>
+
+    <!-- ---- QR sheet (filled in by JS) ---- -->
+    <section class="sheet" id="sheet">
+      <div class="empty" id="empty">
+        Enter a base URL above and click <strong>Generate QR Codes</strong> to preview every location's QR.
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // ---- Location list (kept in sync with locations.json) ----
+      const LOCATIONS = [
+        { id: "entrance",      name: "Main Entrance" },
+        { id: "gate2",         name: "Rear Gate (Bus Stand)" },
+        { id: "junction1",     name: "Central Junction" },
+        { id: "junction2",     name: "Library Junction" },
+        { id: "junction3",     name: "Canteen Junction" },
+        { id: "junction4",     name: "Academic Junction" },
+        { id: "cse_dept",      name: "CSE Department" },
+        { id: "ise_dept",      name: "ISE Department" },
+        { id: "ece_dept",      name: "ECE Department" },
+        { id: "mech_dept",     name: "Mechanical Department" },
+        { id: "civil_dept",    name: "Civil Department" },
+        { id: "admin_block",   name: "Administrative Block" },
+        { id: "exam_cell",     name: "Examination Cell" },
+        { id: "principal",     name: "Principal's Office" },
+        { id: "cse_lab1",      name: "CSE Lab 1 (Programming)" },
+        { id: "cse_lab2",      name: "CSE Lab 2 (Data Structures)" },
+        { id: "cse_lab3",      name: "CSE Lab 3 (Networks)" },
+        { id: "ece_lab",       name: "Electronics Lab" },
+        { id: "mech_lab",      name: "Mechanical Workshop" },
+        { id: "network_lab",   name: "Network & Server Lab" },
+        { id: "library",       name: "Central Library" },
+        { id: "canteen",       name: "Students' Canteen" },
+        { id: "auditorium",    name: "Main Auditorium" },
+        { id: "seminar_hall",  name: "Seminar Hall" },
+        { id: "sports_ground", name: "Sports Ground" },
+        { id: "nss_room",      name: "NSS / NCC Room" },
+        { id: "library_bath",  name: "Washroom (near Library)" },
+        { id: "cse_bath",      name: "Washroom (CSE Block)" },
+        { id: "water_cooler1", name: "Water Cooler (Central)" },
+        { id: "water_cooler2", name: "Water Cooler (Canteen)" },
+        { id: "parking",       name: "Two-Wheeler Parking" },
+        { id: "bus_stop",      name: "College Bus Stop" },
+        { id: "boys_hostel",   name: "Boys' Hostel" },
+        { id: "girls_hostel",  name: "Girls' Hostel" },
+        { id: "dispensary",    name: "Health Centre" },
+        { id: "stationery",    name: "Stationery & Xerox Shop" }
+      ];
+
+      // ---- DOM references ----
+      const baseUrlInput  = document.getElementById("base-url");
+      const qrSizeInput   = document.getElementById("qr-size");
+      const serviceInput  = document.getElementById("qr-service");
+      const generateBtn   = document.getElementById("generate-btn");
+      const printBtn      = document.getElementById("print-btn");
+      const downloadBtn   = document.getElementById("download-btn");
+      const sheet         = document.getElementById("sheet");
+      const status        = document.getElementById("status");
+
+      // ---- Memory: what we generated last time ----
+      let generatedItems = [];
+
+      // ---- Auto-fill the base URL ----
+      if (window.location.protocol === "file:") {
+        baseUrlInput.value = "http://localhost:8080";
+      } else if (window.location.hostname === "localhost" ||
+                 window.location.hostname === "127.0.0.1") {
+        baseUrlInput.value = window.location.origin;
+      }
+
+      // ---- Event listeners ----
+      generateBtn.onclick = onGenerate;
+      printBtn.onclick    = () => window.print();
+      downloadBtn.onclick = onDownloadAll;
+
+      // ---- Generate the QR sheet ----
+      // URL format: baseUrl + "/?loc=<id>"
+      // (Query params work everywhere, unlike /loc/<id> on GitHub Pages.)
+      function onGenerate() {
+
+        let baseUrl = baseUrlInput.value.trim();
+
+        if (baseUrl.length === 0) {
+          showStatus("Please enter a base URL first.", true);
+          return;
+        }
+
+        // Remove trailing slashes.
+        baseUrl = baseUrl.replace(/\/+$/, "");
+
+        // Clamp size between 150 and 800.
+        let size = parseInt(qrSizeInput.value, 10);
+        if (isNaN(size)) size = 300;
+        if (size < 150) size = 150;
+        if (size > 800) size = 800;
+
+        const service = serviceInput.value;
+
+        // Clear the sheet.
+        sheet.innerHTML = "";
+        generatedItems = [];
+
+        // Build one card per location.
+        for (const loc of LOCATIONS) {
+
+          const url   = `${baseUrl}/?loc=${loc.id}`;
+          const qrSrc = buildQrUrl(service, url, size);
+
+          sheet.appendChild(createQrCard(loc, url, qrSrc));
+          generatedItems.push({ id: loc.id, name: loc.name, url, src: qrSrc });
+        }
+
+        showStatus(`Generated ${LOCATIONS.length} QR codes. Click Print to make an A4 sheet.`, false);
+      }
+
+      // ---- Build one QR card ----
+      function createQrCard(loc, url, qrSrc) {
+
+        const card = document.createElement("div");
+        card.className = "qr-card";
+
+        const img = document.createElement("img");
+        img.src = qrSrc;
+        img.alt = `QR code for ${loc.name}`;
+        card.appendChild(img);
+
+        const name = document.createElement("p");
+        name.className = "qr-name";
+        name.textContent = loc.name;
+        card.appendChild(name);
+
+        const idLine = document.createElement("p");
+        idLine.className = "qr-id";
+        idLine.textContent = `loc=${loc.id}`;
+        card.appendChild(idLine);
+
+        const urlLine = document.createElement("p");
+        urlLine.className = "qr-url";
+        urlLine.textContent = url;
+        card.appendChild(urlLine);
+
+        const college = document.createElement("p");
+        college.className = "qr-college";
+        college.textContent = "GEC Chamarajanagar";
+        card.appendChild(college);
+
+        return card;
+      }
+
+      // ---- Build the QR image URL for the chosen service ----
+      function buildQrUrl(service, targetUrl, size) {
+
+        const encoded = encodeURIComponent(targetUrl);
+
+        if (service === "quickchart") {
+          return `https://quickchart.io/qr?text=${encoded}&size=${size}&margin=2`;
+        }
+
+        if (service === "google") {
+          return `https://chart.googleapis.com/chart?chs=${size}x${size}&cht=qr&chl=${encoded}`;
+        }
+
+        // Default: qrserver
+        return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encoded}`;
+      }
+
+      // ---- Download all QR codes as PNG ----
+      function onDownloadAll() {
+
+        if (generatedItems.length === 0) {
+          showStatus("Generate the QR codes first.", true);
+          return;
+        }
+
+        showStatus(`Downloading ${generatedItems.length} QR images… please wait.`, false);
+
+        for (const item of generatedItems) {
+          downloadOne(item);
+        }
+      }
+
+      function downloadOne(item) {
+        fetch(item.src)
+          .then(response => response.blob())
+          .then(blob => {
+            const objectUrl = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = objectUrl;
+            a.download = `${item.id}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+          })
+          .catch(err => console.error("[qr] download failed for", item.id, err));
+      }
+
+      // ---- Show the status banner ----
+      function showStatus(message, isError) {
+        status.textContent = message;
+        status.hidden = false;
+        status.classList.toggle("error", isError);
+      }
+
+    })();
+  </script>
+
+</body>
+</html>
